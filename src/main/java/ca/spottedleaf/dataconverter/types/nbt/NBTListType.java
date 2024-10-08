@@ -169,18 +169,30 @@ public final class NBTListType implements ListType, NBTAdapter {
     }
 
     private void addBinaryTag(int index, Object tag) {
-        switch (tag) {
-            case BinaryTag binaryTag when this.updateType(binaryTag.type()) -> this.list.add(index, tag);
-            case NBTAdapter adapter when this.updateType(adapter.getNBTType()) -> this.list.add(index, adapter.getNBTType());
-            case null, default -> throw new IllegalArgumentException("Invalid tag type: " + tag);
+        if(tag instanceof NBTAdapter adapter) {
+            if(this.updateType(adapter.getNBTType())) {
+                this.list.add(index, adapter);
+            }
+        } else if(tag instanceof BinaryTag binaryTag) {
+            if(this.updateType(binaryTag.type())) {
+                this.list.add(index, binaryTag);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid tag type: " + tag);
         }
     }
 
     private void setBinaryTag(int index, Object tag) {
-        switch (tag) {
-            case BinaryTag binaryTag when this.updateType(binaryTag.type()) -> this.list.set(index, tag);
-            case NBTAdapter adapter when this.updateType(adapter.getNBTType()) -> this.list.set(index, adapter.getNBTType());
-            case null, default -> throw new IllegalArgumentException("Invalid tag type: " + tag);
+        if(tag instanceof NBTAdapter adapter) {
+            if(this.updateType(adapter.getNBTType())) {
+                this.list.set(index, adapter);
+            }
+        } else if(tag instanceof BinaryTag binaryTag) {
+            if(this.updateType(binaryTag.type())) {
+                this.list.set(index, binaryTag);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid tag type: " + tag);
         }
     }
 
@@ -373,7 +385,7 @@ public final class NBTListType implements ListType, NBTAdapter {
             case CompoundBinaryTag compoundBinaryTag -> {
                 return new NBTMapType(compoundBinaryTag);
             }
-            default -> throw new IllegalStateException();
+            default -> throw new IllegalStateException("Invalid tag type: " + tag);
         }
     }
 
