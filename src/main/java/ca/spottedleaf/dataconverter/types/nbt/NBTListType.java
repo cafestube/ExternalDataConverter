@@ -8,6 +8,8 @@ import ca.spottedleaf.dataconverter.types.Types;
 import ca.spottedleaf.dataconverter.util.nbt.MutableNBTList;
 import ca.spottedleaf.dataconverter.util.nbt.NBTUtil;
 import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.BinaryTagType;
+import net.kyori.adventure.nbt.BinaryTagTypes;
 import net.kyori.adventure.nbt.ByteArrayBinaryTag;
 import net.kyori.adventure.nbt.ByteBinaryTag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
@@ -21,20 +23,31 @@ import net.kyori.adventure.nbt.LongBinaryTag;
 import net.kyori.adventure.nbt.NumberBinaryTag;
 import net.kyori.adventure.nbt.ShortBinaryTag;
 import net.kyori.adventure.nbt.StringBinaryTag;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class NBTListType implements ListType {
+public final class NBTListType implements ListType, NBTAdapter {
 
-    private final MutableNBTList list;
+    private final List<Object> list;
+    private BinaryTagType<?> type;
 
     public NBTListType() {
-        this.list = new MutableNBTList();
+        this.list = new ArrayList<>();
+        this.type = BinaryTagTypes.END;
     }
 
-    @SuppressWarnings("unchecked")
     public NBTListType(final ListBinaryTag tag) {
-        this.list = new MutableNBTList(tag.stream().collect(Collectors.toList()), tag.elementType());
+        this.type = tag.elementType();
+        this.list = tag.stream().map(binaryTag -> {
+            if (binaryTag instanceof ListBinaryTag listBinaryTag) {
+                return new NBTListType(listBinaryTag);
+            } else if (binaryTag instanceof CompoundBinaryTag compoundBinaryTag) {
+                return new NBTMapType(compoundBinaryTag);
+            }
+            return binaryTag;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -67,7 +80,11 @@ public final class NBTListType implements ListType {
     }
 
     public ListBinaryTag getTag() {
-        return ListBinaryTag.listBinaryTag(this.list.getType(), this.list.getList());
+        return ListBinaryTag.listBinaryTag(this.type, this.list.stream().map(o -> switch (o) {
+            case NBTAdapter map -> map.getTag();
+            case BinaryTag binaryTag -> binaryTag;
+            case null, default -> throw new IllegalStateException();
+        }).toList());
     }
 
     @Override
@@ -76,41 +93,45 @@ public final class NBTListType implements ListType {
     }
 
     protected static ObjectType getType(final byte id) {
-        switch (id) {
-            case 0: // END
-                return ObjectType.NONE;
-            case 1: // BYTE
-                return ObjectType.BYTE;
-            case 2: // SHORT
-                return ObjectType.SHORT;
-            case 3: // INT
-                return ObjectType.INT;
-            case 4: // LONG
-                return ObjectType.LONG;
-            case 5: // FLOAT
-                return ObjectType.FLOAT;
-            case 6: // DOUBLE
-                return ObjectType.DOUBLE;
-            case 7: // BYTE_ARRAY
-                return ObjectType.BYTE_ARRAY;
-            case 8: // STRING
-                return ObjectType.STRING;
-            case 9: // LIST
-                return ObjectType.LIST;
-            case 10: // COMPOUND
-                return ObjectType.MAP;
-            case 11: // INT_ARRAY
-                return ObjectType.INT_ARRAY;
-            case 12: // LONG_ARRAY
-                return ObjectType.LONG_ARRAY;
-            default:
-                throw new IllegalStateException("Unknown type: " + id);
-        }
+        return switch (id) {
+            case 0 -> // END
+                ObjectType.NONE;
+            case 1 -> // BYTE
+                ObjectType.BYTE;
+            case 2 -> // SHORT
+                ObjectType.SHORT;
+            case 3 -> // INT
+                ObjectType.INT;
+            case 4 -> // LONG
+                ObjectType.LONG;
+            case 5 -> // FLOAT
+                ObjectType.FLOAT;
+            case 6 -> // DOUBLE
+                ObjectType.DOUBLE;
+            case 7 -> // BYTE_ARRAY
+                ObjectType.BYTE_ARRAY;
+            case 8 -> // STRING
+                ObjectType.STRING;
+            case 9 -> // LIST
+                ObjectType.LIST;
+            case 10 -> // COMPOUND
+                ObjectType.MAP;
+            case 11 -> // INT_ARRAY
+                ObjectType.INT_ARRAY;
+            case 12 -> // LONG_ARRAY
+                ObjectType.LONG_ARRAY;
+            default -> throw new IllegalStateException("Unknown type: " + id);
+        };
     }
 
     @Override
     public ObjectType getType() {
-        return getType(this.list.getType().id());
+        return getType(this.type.id());
+    }
+
+    @Override
+    public BinaryTagType<?> getNBTType() {
+        return BinaryTagTypes.LIST;
     }
 
     @Override
@@ -123,9 +144,60 @@ public final class NBTListType implements ListType {
         this.list.remove(index);
     }
 
+    private BinaryTag getBinaryTag(int index) {
+        Object obj = this.list.get(index);
+
+        return switch (obj) {
+            case NBTAdapter adapter -> adapter.getTag();
+            case BinaryTag binaryTag -> binaryTag;
+            case null, default -> throw new IllegalStateException();
+        };
+    }
+
+    private void addBinaryTag(Object tag) {
+        if(tag instanceof NBTAdapter adapter) {
+            if(this.updateType(adapter.getNBTType())) {
+                this.list.add(adapter);
+            }
+        } else if(tag instanceof BinaryTag binaryTag) {
+            if(this.updateType(binaryTag.type())) {
+                this.list.add(binaryTag);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid tag type: " + tag);
+        }
+    }
+
+    private void addBinaryTag(int index, Object tag) {
+        switch (tag) {
+            case BinaryTag binaryTag when this.updateType(binaryTag.type()) -> this.list.add(index, tag);
+            case NBTAdapter adapter when this.updateType(adapter.getNBTType()) -> this.list.add(index, adapter.getNBTType());
+            case null, default -> throw new IllegalArgumentException("Invalid tag type: " + tag);
+        }
+    }
+
+    private void setBinaryTag(int index, Object tag) {
+        switch (tag) {
+            case BinaryTag binaryTag when this.updateType(binaryTag.type()) -> this.list.set(index, tag);
+            case NBTAdapter adapter when this.updateType(adapter.getNBTType()) -> this.list.set(index, adapter.getNBTType());
+            case null, default -> throw new IllegalArgumentException("Invalid tag type: " + tag);
+        }
+    }
+
+    private boolean updateType(BinaryTagType<?> type) {
+        if(type == BinaryTagTypes.END) {
+            return false;
+        } else if (this.type == BinaryTagTypes.END) {
+            this.type = type;
+            return true;
+        } else {
+            return this.type == type;
+        }
+    }
+
     @Override
     public Number getNumber(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -134,7 +206,7 @@ public final class NBTListType implements ListType {
 
     @Override
     public byte getByte(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -143,12 +215,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setByte(final int index, final byte to) {
-        this.list.set(index, ByteBinaryTag.byteBinaryTag(to));
+        setBinaryTag(index, ByteBinaryTag.byteBinaryTag(to));
     }
 
     @Override
     public short getShort(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -157,12 +229,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setShort(final int index, final short to) {
-        this.list.set(index, ShortBinaryTag.shortBinaryTag(to));
+        setBinaryTag(index, ShortBinaryTag.shortBinaryTag(to));
     }
 
     @Override
     public int getInt(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -171,12 +243,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setInt(final int index, final int to) {
-        this.list.set(index, IntBinaryTag.intBinaryTag(to));
+        setBinaryTag(index, IntBinaryTag.intBinaryTag(to));
     }
 
     @Override
     public long getLong(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -185,12 +257,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setLong(final int index, final long to) {
-        this.list.set(index, LongBinaryTag.longBinaryTag(to));
+        setBinaryTag(index, LongBinaryTag.longBinaryTag(to));
     }
 
     @Override
     public float getFloat(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -199,12 +271,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setFloat(final int index, final float to) {
-        this.list.set(index, FloatBinaryTag.floatBinaryTag(to));
+        setBinaryTag(index, FloatBinaryTag.floatBinaryTag(to));
     }
 
     @Override
     public double getDouble(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof NumberBinaryTag number)) {
             throw new IllegalStateException();
         }
@@ -213,12 +285,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setDouble(final int index, final double to) {
-        this.list.set(index, DoubleBinaryTag.doubleBinaryTag(to));
+        setBinaryTag(index, DoubleBinaryTag.doubleBinaryTag(to));
     }
 
     @Override
     public byte[] getBytes(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof ByteArrayBinaryTag)) {
             throw new IllegalStateException();
         }
@@ -227,7 +299,7 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setBytes(final int index, final byte[] to) {
-        this.list.set(index, ByteArrayBinaryTag.byteArrayBinaryTag(to));
+        setBinaryTag(index, ByteArrayBinaryTag.byteArrayBinaryTag(to));
     }
 
     @Override
@@ -243,7 +315,7 @@ public final class NBTListType implements ListType {
 
     @Override
     public int[] getInts(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof IntArrayBinaryTag)) {
             throw new IllegalStateException();
         }
@@ -252,12 +324,12 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setInts(final int index, final int[] to) {
-        this.list.set(index, IntArrayBinaryTag.intArrayBinaryTag(to));
+        setBinaryTag(index, IntArrayBinaryTag.intArrayBinaryTag(to));
     }
 
     @Override
     public long[] getLongs(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof LongArrayBinaryTag)) {
             throw new IllegalStateException();
         }
@@ -266,40 +338,56 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setLongs(final int index, final long[] to) {
-        this.list.set(index, LongArrayBinaryTag.longArrayBinaryTag(to));
+        setBinaryTag(index, LongArrayBinaryTag.longArrayBinaryTag(to));
     }
 
     @Override
     public ListType getList(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
-        if (!(tag instanceof ListBinaryTag)) {
-            throw new IllegalStateException();
+        final Object tag = this.list.get(index); // does bound checking for us
+        switch (tag) {
+            case NBTListType nbtListType -> {
+                return nbtListType;
+            }
+            case ListBinaryTag listBinaryTag -> {
+                return new NBTListType(listBinaryTag);
+            }
+            default -> throw new IllegalStateException();
         }
-        return new NBTListType((ListBinaryTag) tag);
     }
 
     @Override
     public void setList(final int index, final ListType list) {
-        this.list.set(index, ((NBTListType)list).getTag());
+        if(!(list instanceof NBTListType)) {
+            throw new IllegalArgumentException("Invalid list type: " + list);
+        }
+        setBinaryTag(index, list);
     }
 
     @Override
     public MapType<String> getMap(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
-        if (!(tag instanceof CompoundBinaryTag)) {
-            throw new IllegalStateException();
+        final Object tag = this.list.get(index); // does bound checking for us
+        switch (tag) {
+            case NBTMapType map -> {
+                return map;
+            }
+            case CompoundBinaryTag compoundBinaryTag -> {
+                return new NBTMapType(compoundBinaryTag);
+            }
+            default -> throw new IllegalStateException();
         }
-        return new NBTMapType(((CompoundBinaryTag) tag));
     }
 
     @Override
     public void setMap(final int index, final MapType<?> to) {
-        this.list.set(index, ((NBTMapType)to).getTag());
+        if(!(to instanceof NBTMapType)) {
+            throw new IllegalArgumentException("Invalid map type: " + to);
+        }
+        this.setBinaryTag(index, to);
     }
 
     @Override
     public String getString(final int index) {
-        final BinaryTag tag = this.list.get(index); // does bound checking for us
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
         if (!(tag instanceof StringBinaryTag)) {
             throw new IllegalStateException();
         }
@@ -308,77 +396,77 @@ public final class NBTListType implements ListType {
 
     @Override
     public void setString(final int index, final String to) {
-        this.list.set(index, StringBinaryTag.stringBinaryTag(to));
+        setBinaryTag(index, StringBinaryTag.stringBinaryTag(to));
     }
 
     @Override
     public void addByte(final byte b) {
-        this.list.add(ByteBinaryTag.byteBinaryTag(b));
+        addBinaryTag(ByteBinaryTag.byteBinaryTag(b));
     }
 
     @Override
     public void addByte(final int index, final byte b) {
-        this.list.add(index, ByteBinaryTag.byteBinaryTag(b));
+        addBinaryTag(index, ByteBinaryTag.byteBinaryTag(b));
     }
 
     @Override
     public void addShort(final short s) {
-        this.list.add(ShortBinaryTag.shortBinaryTag(s));
+        addBinaryTag(ShortBinaryTag.shortBinaryTag(s));
     }
 
     @Override
     public void addShort(final int index, final short s) {
-        this.list.add(index, ShortBinaryTag.shortBinaryTag(s));
+        addBinaryTag(index, ShortBinaryTag.shortBinaryTag(s));
     }
 
     @Override
     public void addInt(final int i) {
-        this.list.add(IntBinaryTag.intBinaryTag(i));
+        addBinaryTag(IntBinaryTag.intBinaryTag(i));
     }
 
     @Override
     public void addInt(final int index, final int i) {
-        this.list.add(index, IntBinaryTag.intBinaryTag(i));
+        addBinaryTag(index, IntBinaryTag.intBinaryTag(i));
     }
 
     @Override
     public void addLong(final long l) {
-        this.list.add(LongBinaryTag.longBinaryTag(l));
+        addBinaryTag(LongBinaryTag.longBinaryTag(l));
     }
 
     @Override
     public void addLong(final int index, final long l) {
-        this.list.add(index, LongBinaryTag.longBinaryTag(l));
+        addBinaryTag(index, LongBinaryTag.longBinaryTag(l));
     }
 
     @Override
     public void addFloat(final float f) {
-        this.list.add(FloatBinaryTag.floatBinaryTag(f));
+        addBinaryTag(FloatBinaryTag.floatBinaryTag(f));
     }
 
     @Override
     public void addFloat(final int index, final float f) {
-        this.list.add(index, FloatBinaryTag.floatBinaryTag(f));
+        addBinaryTag(index, FloatBinaryTag.floatBinaryTag(f));
     }
 
     @Override
     public void addDouble(final double d) {
-        this.list.add(DoubleBinaryTag.doubleBinaryTag(d));
+        addBinaryTag(DoubleBinaryTag.doubleBinaryTag(d));
     }
 
     @Override
     public void addDouble(final int index, final double d) {
-        this.list.add(index, DoubleBinaryTag.doubleBinaryTag(d));
+        addBinaryTag(index, DoubleBinaryTag.doubleBinaryTag(d));
     }
 
     @Override
     public void addByteArray(final byte[] arr) {
-        this.list.add(ByteArrayBinaryTag.byteArrayBinaryTag(arr));
+        addBinaryTag(ByteArrayBinaryTag.byteArrayBinaryTag(arr));
     }
 
     @Override
     public void addByteArray(final int index, final byte[] arr) {
-        this.list.add(index, ByteArrayBinaryTag.byteArrayBinaryTag(arr));
+        addBinaryTag(index, ByteArrayBinaryTag.byteArrayBinaryTag(arr));
     }
 
     @Override
@@ -395,51 +483,67 @@ public final class NBTListType implements ListType {
 
     @Override
     public void addIntArray(final int[] arr) {
-        this.list.add(IntArrayBinaryTag.intArrayBinaryTag(arr));
+        addBinaryTag(IntArrayBinaryTag.intArrayBinaryTag(arr));
     }
 
     @Override
     public void addIntArray(final int index, final int[] arr) {
-        this.list.add(index, IntArrayBinaryTag.intArrayBinaryTag(arr));
+        addBinaryTag(index, IntArrayBinaryTag.intArrayBinaryTag(arr));
     }
 
     @Override
     public void addLongArray(final long[] arr) {
-        this.list.add(LongArrayBinaryTag.longArrayBinaryTag(arr));
+        addBinaryTag(LongArrayBinaryTag.longArrayBinaryTag(arr));
     }
 
     @Override
     public void addLongArray(final int index, final long[] arr) {
-        this.list.add(index, LongArrayBinaryTag.longArrayBinaryTag(arr));
+        addBinaryTag(index, LongArrayBinaryTag.longArrayBinaryTag(arr));
     }
 
     @Override
     public void addList(final ListType list) {
-        this.list.add(((NBTListType)list).getTag());
+        if(list instanceof NBTListType nbtListType) {
+            this.addBinaryTag(nbtListType);
+        } else {
+            throw new IllegalArgumentException("Invalid list type: " + list);
+        }
     }
 
     @Override
     public void addList(final int index, final ListType list) {
-        this.list.add(index, ((NBTListType)list).getTag());
+        if(list instanceof NBTListType nbtListType) {
+            this.addBinaryTag(index, nbtListType);
+        } else {
+            throw new IllegalArgumentException("Invalid list type: " + list);
+        }
     }
 
     @Override
     public void addMap(final MapType<?> map) {
-        this.list.add(((NBTMapType)map).getTag());
+        if(map instanceof NBTMapType nbtMapType) {
+            this.addBinaryTag(nbtMapType);
+        } else {
+            throw new IllegalArgumentException("Invalid map type: " + map);
+        }
     }
 
     @Override
     public void addMap(final int index, final MapType<?> map) {
-        this.list.add(index, ((NBTMapType)map).getTag());
+        if(map instanceof NBTMapType nbtMapType) {
+            this.addBinaryTag(index, nbtMapType);
+        } else {
+            throw new IllegalArgumentException("Invalid map type: " + map);
+        }
     }
 
     @Override
     public void addString(final String string) {
-        this.list.add(StringBinaryTag.stringBinaryTag(string));
+        addBinaryTag(StringBinaryTag.stringBinaryTag(string));
     }
 
     @Override
     public void addString(final int index, final String string) {
-        this.list.add(index, StringBinaryTag.stringBinaryTag(string));
+        addBinaryTag(index, StringBinaryTag.stringBinaryTag(string));
     }
 }

@@ -32,6 +32,12 @@ version = getGitCommit() + "-SNAPSHOT"
 group = "eu.cafestube.data"
 
 dependencies {
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.11.2")
+    testImplementation("net.kyori:adventure-nbt:4.17.0")
+
+
     // https://mvnrepository.com/artifact/net.kyori/adventure-api
     api("net.kyori:adventure-api:4.14.0")
     api("com.google.code.gson:gson:2.10.1")
@@ -53,6 +59,10 @@ dependencies {
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-common
     api("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.21")
 
+}
+
+test {
+    useJUnitPlatform()
 }
 
 java {
