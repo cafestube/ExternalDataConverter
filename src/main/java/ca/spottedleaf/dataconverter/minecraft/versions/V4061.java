@@ -7,10 +7,14 @@ import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.TagParser;
+import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.StringBinaryTag;
+import net.kyori.adventure.nbt.TagStringIO;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public final class V4061 {
 
@@ -37,48 +41,62 @@ public final class V4061 {
     private static void addConversion(final String keyPath, final String normalsNBT, final String ominoussNBT) {
         final String fullKey = "minecraft:".concat(keyPath);
 
-        final CompoundTag normalNBT = parseNBT(normalsNBT);
+        final CompoundBinaryTag normalNBT = parseNBT(normalsNBT);
         final MapType<String> normalMapType = new NBTMapType(normalNBT);
-        final CompoundTag ominousNBT = parseNBT(ominoussNBT);
+        final CompoundBinaryTag ominousNBT = parseNBT(ominoussNBT);
 
-        final CompoundTag ominousMerged = normalNBT.copy().merge(ominousNBT);
+        final CompoundBinaryTag ominousMerged = merge(normalNBT, ominousNBT);
 
         CONVERT_MAP.put(Pair.of(normalMapType, new NBTMapType(ominousNBT)), fullKey);
         CONVERT_MAP.put(Pair.of(normalMapType, new NBTMapType(ominousMerged)), fullKey);
-        CONVERT_MAP.put(Pair.of(normalMapType, new NBTMapType(removeDefaults(ominousMerged.copy()))), fullKey);
+        CONVERT_MAP.put(Pair.of(normalMapType, new NBTMapType(removeDefaults(ominousMerged))), fullKey);
     }
 
-    private static CompoundTag parseNBT(final String sNBT) {
+    private static CompoundBinaryTag merge(CompoundBinaryTag compound, CompoundBinaryTag source) {
+        for (final String string : source.keySet()) {
+            BinaryTag tag = Objects.requireNonNull(source.get(string));
+
+            if(tag instanceof CompoundBinaryTag && compound.keySet().contains(string) && compound.get(string) instanceof CompoundBinaryTag) {
+                tag = merge(compound.getCompound(string), (CompoundBinaryTag) tag);
+            }
+
+            compound = compound.put(string, tag);
+        }
+
+        return compound;
+    }
+
+    private static CompoundBinaryTag parseNBT(final String sNBT) {
         try {
-            return TagParser.parseTag(sNBT);
-        } catch (final CommandSyntaxException ex) {
+            return TagStringIO.get().asCompound(sNBT);
+        } catch (final IOException ex) {
             throw new IllegalArgumentException("Failed to parse NBT: " + sNBT, ex);
         }
     }
 
-    private static CompoundTag removeDefaults(final CompoundTag config) {
+    private static CompoundBinaryTag removeDefaults(CompoundBinaryTag config) {
         if (config.getInt("spawn_range") == 4) {
-            config.remove("spawn_range");
+            config = config.remove("spawn_range");
         }
 
         if (config.getFloat("total_mobs") == 6.0F) {
-            config.remove("total_mobs");
+            config = config.remove("total_mobs");
         }
 
         if (config.getFloat("simultaneous_mobs") == 2.0F) {
-            config.remove("simultaneous_mobs");
+            config = config.remove("simultaneous_mobs");
         }
 
         if (config.getFloat("total_mobs_added_per_player") == 2.0F) {
-            config.remove("total_mobs_added_per_player");
+            config = config.remove("total_mobs_added_per_player");
         }
 
         if (config.getFloat("simultaneous_mobs_added_per_player") == 1.0F) {
-            config.remove("simultaneous_mobs_added_per_player");
+            config = config.remove("simultaneous_mobs_added_per_player");
         }
 
         if (config.getInt("ticks_between_spawn") == 40) {
-            config.remove("ticks_between_spawn");
+            config = config.remove("ticks_between_spawn");
         }
 
         return config;
