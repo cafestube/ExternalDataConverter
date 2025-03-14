@@ -41,7 +41,7 @@ public class NbtOps implements DynamicOps<BinaryTag> {
 
     @Override
     public BinaryTag empty() {
-        return CompoundBinaryTag.empty();
+        return EndBinaryTag.endBinaryTag();
     }
 
     @Override
@@ -139,6 +139,9 @@ public class NbtOps implements DynamicOps<BinaryTag> {
 
     @Override
     public DataResult<BinaryTag> mergeToList(BinaryTag list, BinaryTag value) {
+        if(list instanceof EndBinaryTag) {
+            return DataResult.success(ListBinaryTag.listBinaryTag(value.type(), List.of(value)));
+        }
         if(!(list instanceof ListBinaryTag nbtList)) {
             return DataResult.error(() -> "Not a list");
         }
@@ -154,6 +157,10 @@ public class NbtOps implements DynamicOps<BinaryTag> {
 
     @Override
     public DataResult<BinaryTag> mergeToList(BinaryTag list, List<BinaryTag> values) {
+        if(list instanceof EndBinaryTag) {
+            if(values.isEmpty()) return DataResult.success(ListBinaryTag.empty());
+            return DataResult.success(ListBinaryTag.listBinaryTag(values.getFirst().type(), values));
+        }
         if(!(list instanceof ListBinaryTag nbtList)) {
             return DataResult.error(() -> "Not a list");
         }
