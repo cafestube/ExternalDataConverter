@@ -2,9 +2,9 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterItemStackToDataComponents;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
 import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V3820 {
@@ -14,7 +14,7 @@ public final class V3820 {
     public static void register() {
         MCTypeRegistry.TILE_ENTITY.addConverterForId("minecraft:skull", new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final Object skullOwner = data.getGeneric("SkullOwner");
                 final Object extraType = data.getGeneric("ExtraType");
 
@@ -38,14 +38,14 @@ public final class V3820 {
         // I don't see why this converter is necessary, V3818 should have converted correctly...
         MCTypeRegistry.ITEM_STACK.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                final MapType<String> components = data.getMap("components");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final MapType components = data.getMap("components");
 
                 if (components == null) {
                     return null;
                 }
 
-                final MapType<String> oldTarget = components.getMap("minecraft:lodestone_target");
+                final MapType oldTarget = components.getMap("minecraft:lodestone_target");
                 if (oldTarget == null) {
                     return null;
                 }
@@ -63,7 +63,7 @@ public final class V3820 {
                 oldTarget.remove("pos");
                 oldTarget.remove("dimension");
 
-                final MapType<String> target = oldTarget.getTypeUtil().createEmptyMap();
+                final MapType target = oldTarget.getTypeUtil().createEmptyMap();
                 oldTarget.setMap("target", target);
 
                 target.setGeneric("pos", pos);
@@ -72,6 +72,9 @@ public final class V3820 {
                 return null;
             }
         });
+
+        // Moved from V99 to here, as 21w10a is when custom_name was added
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:skull", new DataWalkerTypePaths<>(MCTypeRegistry.TEXT_COMPONENT, "custom_name"));
     }
 
     private V3820() {}

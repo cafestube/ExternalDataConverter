@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class NBTMapType implements MapType<String>, NBTAdapter {
+public final class NBTMapType implements MapType, NBTAdapter {
 
     private final Map<String, Object> map;
 
@@ -64,7 +64,7 @@ public final class NBTMapType implements MapType<String>, NBTAdapter {
     }
 
     @Override
-    public TypeUtil getTypeUtil() {
+    public TypeUtil<Tag> getTypeUtil() {
         return Types.NBT;
     }
 
@@ -118,7 +118,7 @@ public final class NBTMapType implements MapType<String>, NBTAdapter {
     }
 
     @Override
-    public MapType<String> copy() {
+    public MapType copy() {
         return new NBTMapType(getTag());
     }
 
@@ -486,7 +486,7 @@ public final class NBTMapType implements MapType<String>, NBTAdapter {
     }
 
     @Override
-    public MapType<String> getMap(final String key) {
+    public MapType getMap(final String key) {
         return this.getMap(key, null);
     }
 
@@ -502,7 +502,7 @@ public final class NBTMapType implements MapType<String>, NBTAdapter {
     }
 
     @Override
-    public void setMap(final String key, final MapType<?> val) {
+    public void setMap(final String key, final MapType val) {
         if(val instanceof NBTMapType nbtMapType) {
             this.map.put(key, nbtMapType);
         } else {

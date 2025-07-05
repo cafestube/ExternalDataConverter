@@ -11,7 +11,7 @@ public final class V3939 {
     private static final int VERSION = MCVersions.V1_20_6 + 100;
 
     public static void register() {
-        MCTypeRegistry.LEVEL.addStructureConverter(new ConverterRemoveFeatureFlag(VERSION, new HashSet<>(
+        MCTypeRegistry.LIGHTWEIGHT_LEVEL.addStructureConverter(new ConverterRemoveFeatureFlag(VERSION, new HashSet<>(
             Arrays.asList(
                 "minecraft:update_1_21"
             )

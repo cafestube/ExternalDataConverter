@@ -4,6 +4,7 @@ import ca.spottedleaf.dataconverter.converters.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.dataconverter.types.Types;
 import ca.spottedleaf.dataconverter.types.json.JsonMapType;
 import ca.spottedleaf.dataconverter.types.json.JsonTypeUtil;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
@@ -14,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.DynamicOps;
@@ -113,21 +115,20 @@ public final class V1506 {
     public static void register() {
         MCTypeRegistry.LEVEL.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final String generatorOptions = data.getString("generatorOptions");
                 final String generatorName = data.getString("generatorName");
                 if ("flat".equalsIgnoreCase(generatorName)) {
                     data.setMap("generatorOptions", V1506.convert(generatorOptions == null ? "" : generatorOptions));
                 } else if ("buffet".equalsIgnoreCase(generatorName) && generatorOptions != null) {
-
-                    data.setMap("generatorOptions", JsonTypeUtil.convertJsonToNBT(new JsonMapType(GsonUtil.fromJson(GsonUtil.GSON, generatorOptions, JsonObject.class, true), false)));
+                    data.setGeneric("generatorOptions", Types.JSON.convertFromBaseToGeneric(JsonParser.parseString(generatorOptions), data.getTypeUtil()));
                 }
                 return null;
             }
         });
     }
 
-    private static MapType<String> convert(final String param0) {
+    private static MapType convert(final String param0) {
         final Dynamic<BinaryTag> dynamic = convert(param0, NbtOps.INSTANCE);
 
         return new NBTMapType((CompoundBinaryTag) dynamic.getValue());

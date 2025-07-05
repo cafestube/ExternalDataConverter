@@ -44,8 +44,8 @@ public final class V1451 {
         // V1
         MCTypeRegistry.CHUNK.addStructureConverter(new ConverterFlattenChunk());
 
-        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, 1, (final MapType<String> data, final long fromVersion, final long toVersion) -> {
-            final MapType<String> level = data.getMap("Level");
+        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, 1, (final MapType data, final long fromVersion, final long toVersion) -> {
+            final MapType level = data.getMap("Level");
             if (level == null) {
                 return null;
             }
@@ -56,7 +56,7 @@ public final class V1451 {
             final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
             if (tileTicks != null) {
                 for (int i = 0, len = tileTicks.size(); i < len; ++i) {
-                    final MapType<String> tileTick = tileTicks.getMap(i);
+                    final MapType tileTick = tileTicks.getMap(i);
                     WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
                 }
             }
@@ -64,7 +64,7 @@ public final class V1451 {
             final ListType sections = level.getList("Sections", ObjectType.MAP);
             if (sections != null) {
                 for (int i = 0, len = sections.size(); i < len; ++i) {
-                    final MapType<String> section = sections.getMap(i);
+                    final MapType section = sections.getMap(i);
                     WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section, "Palette", fromVersion, toVersion);
                 }
             }
@@ -75,7 +75,7 @@ public final class V1451 {
         // V2
         MCTypeRegistry.TILE_ENTITY.addConverterForId("minecraft:piston", new DataConverter<>(VERSION, 2) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final int blockId = data.getInt("blockId");
                 final int blockData = data.getInt("blockData") & 15;
 
@@ -94,8 +94,8 @@ public final class V1451 {
         ConverterFlattenEntity.register();
         MCTypeRegistry.ITEM_STACK.addConverterForId("minecraft:filled_map", new DataConverter<>(VERSION, 3) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                MapType<String> tag = data.getMap("tag");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                MapType tag = data.getMap("tag");
                 if (tag == null) {
                     tag = Types.NBT.createEmptyMap();
                     data.setMap("tag", tag);
@@ -111,7 +111,6 @@ public final class V1451 {
 
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:potion", new DataWalkerItems("Potion"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:arrow", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "inBlockState"));
-        V100.registerEquipment(VERSION, 3, "minecraft:enderman");
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:enderman", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "carriedBlockState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:falling_block", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "BlockState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:falling_block", new DataWalkerTileEntities("TileEntityData"));
@@ -119,14 +118,14 @@ public final class V1451 {
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:chest_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:chest_minecart", new DataWalkerItemLists("Items"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:commandblock_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
+        MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:commandblock_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.TEXT_COMPONENT, "LastOutput"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:furnace_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:hopper_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:hopper_minecart", new DataWalkerItemLists("Items"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
-        MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", (final MapType<String> data, final long fromVersion, final long toVersion) -> {
-            MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
-            return null;
+        MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", (final MapType data, final long fromVersion, final long toVersion) -> {
+            return MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
         });
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:tnt_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
 
@@ -150,7 +149,7 @@ public final class V1451 {
         // So clearly somebody fucked up. This fixes wolf colours incorrectly converting between versions
         MCTypeRegistry.ENTITY.addConverterForId("minecraft:wolf", new DataConverter<>(VERSION, 5) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final Number colour = data.getNumber("CollarColor");
 
                 if (colour != null) {
@@ -163,7 +162,7 @@ public final class V1451 {
          */
         MCTypeRegistry.TILE_ENTITY.addConverterForId("minecraft:banner", new DataConverter<>(VERSION, 5) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final Number base = data.getNumber("Base");
                 if (base != null) {
                     data.setInt("Base", 15 - base.intValue());
@@ -172,7 +171,7 @@ public final class V1451 {
                 final ListType patterns = data.getList("Patterns", ObjectType.MAP);
                 if (patterns != null) {
                     for (int i = 0, len = patterns.size(); i < len; ++i) {
-                        final MapType<String> pattern = patterns.getMap(i);
+                        final MapType pattern = patterns.getMap(i);
                         final Number colour = pattern.getNumber("Color");
                         if (colour != null) {
                             pattern.setInt("Color", 15 - colour.intValue());
@@ -243,7 +242,7 @@ public final class V1451 {
             }
 
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 if (!"flat".equalsIgnoreCase(data.getString("generatorName"))) {
                     return null;
                 }
@@ -264,7 +263,7 @@ public final class V1451 {
         MCTypeRegistry.OBJECTIVE.addStructureConverter(ConverterFlattenStats.makeObjectiveConverter());
         MCTypeRegistry.TILE_ENTITY.addConverterForId("minecraft:jukebox", new DataConverter<>(VERSION, 6) {
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final int record = data.getInt("Record");
                 if (record <= 0) {
                     return null;
@@ -277,7 +276,7 @@ public final class V1451 {
                     return null;
                 }
 
-                final MapType<String> recordItem = Types.NBT.createEmptyMap();
+                final MapType recordItem = Types.NBT.createEmptyMap();
                 data.setMap("RecordItem", recordItem);
 
                 recordItem.setString("id", newItemId);
@@ -287,8 +286,8 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.STATS.addStructureWalker(VERSION, 6, (final MapType<String> data, final long fromVersion, final long toVersion) -> {
-            final MapType<String> stats = data.getMap("stats");
+        MCTypeRegistry.STATS.addStructureWalker(VERSION, 6, (final MapType data, final long fromVersion, final long toVersion) -> {
+            final MapType stats = data.getMap("stats");
             if (stats == null) {
                 return null;
             }
@@ -309,7 +308,7 @@ public final class V1451 {
 
         MCTypeRegistry.OBJECTIVE.addStructureHook(VERSION, 6, new DataHook<>() {
             @Override
-            public MapType<String> preHook(final MapType<String> data, final long fromVersion, final long toVersion) {
+            public MapType preHook(final MapType data, final long fromVersion, final long toVersion) {
                 // unpack
                 final String criteriaName = data.getString("CriteriaName");
                 String type;
@@ -335,7 +334,7 @@ public final class V1451 {
                 }
 
                 if (type != null && id != null) {
-                    final MapType<String> criteriaType = Types.NBT.createEmptyMap();
+                    final MapType criteriaType = Types.NBT.createEmptyMap();
                     data.setMap("CriteriaType", criteriaType);
 
                     criteriaType.setString("type", type);
@@ -346,9 +345,9 @@ public final class V1451 {
             }
 
             @Override
-            public MapType<String> postHook(final MapType<String> data, final long fromVersion, final long toVersion) {
+            public MapType postHook(final MapType data, final long fromVersion, final long toVersion) {
                 // repack
-                final MapType<String> criteriaType = data.getMap("CriteriaType");
+                final MapType criteriaType = data.getMap("CriteriaType");
 
                 final String newName;
                 if (criteriaType == null) {
@@ -376,8 +375,10 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.OBJECTIVE.addStructureWalker(VERSION, 6, (final MapType<String> data, final long fromVersion, final long toVersion) -> {
-            final MapType<String> criteriaType = data.getMap("CriteriaType");
+        MCTypeRegistry.OBJECTIVE.addStructureWalker(VERSION, 6, (final MapType data, final long fromVersion, final long toVersion) -> {
+            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "DisplayName", fromVersion, toVersion);
+
+            final MapType criteriaType = data.getMap("CriteriaType");
             if (criteriaType == null) {
                 return null;
             }
@@ -416,7 +417,7 @@ public final class V1451 {
 
         // V7
         MCTypeRegistry.STRUCTURE_FEATURE.addStructureConverter(new DataConverter<>(VERSION, 7) {
-            private static void convertToBlockState(final MapType<String> data, final String path) {
+            private static void convertToBlockState(final MapType data, final String path) {
                 final Number number = data.getNumber(path);
                 if (number == null) {
                     return;
@@ -426,14 +427,14 @@ public final class V1451 {
             }
 
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 final ListType children = data.getList("Children", ObjectType.MAP);
                 if (children == null) {
                     return null;
                 }
 
                 for (int i = 0, len = children.size(); i < len; ++i) {
-                    final MapType<String> child = children.getMap(i);
+                    final MapType child = children.getMap(i);
 
                     final String id = child.getString("id");
 
@@ -457,8 +458,8 @@ public final class V1451 {
 
         // convert villagers to trade with pumpkins and not the carved pumpkin
         MCTypeRegistry.ENTITY.addConverterForId("minecraft:villager", new DataConverter<>(VERSION, 7) {
-            private static void convertPumpkin(final MapType<String> data, final String path) {
-                final MapType<String> item = data.getMap(path);
+            private static void convertPumpkin(final MapType data, final String path) {
+                final MapType item = data.getMap(path);
                 if (item == null) {
                     return;
                 }
@@ -471,13 +472,13 @@ public final class V1451 {
             }
 
             @Override
-            public MapType<String> convert(final MapType<String> data, final long sourceVersion, final long toVersion) {
-                final MapType<String> offers = data.getMap("Offers");
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final MapType offers = data.getMap("Offers");
                 if (offers != null) {
                     final ListType recipes = offers.getList("Recipes", ObjectType.MAP);
                     if (recipes != null) {
                         for (int i = 0, len = recipes.size(); i < len; ++i) {
-                            final MapType<String> recipe = recipes.getMap(i);
+                            final MapType recipe = recipes.getMap(i);
 
                             convertPumpkin(recipe, "buy");
                             convertPumpkin(recipe, "buyB");
@@ -489,14 +490,18 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, 7, (final MapType<String> data, final long fromVersion, final long toVersion) -> {
-            final ListType list = data.getList("Children", ObjectType.MAP);
+        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, 7, (final MapType data, final long fromVersion, final long toVersion) -> {
+            final ListType list = data.getListUnchecked("Children");
             if (list == null) {
                 return null;
             }
 
             for (int i = 0, len = list.size(); i < len; ++i) {
-                final MapType<String> child = list.getMap(i);
+                final MapType child = list.getMap(i, null);
+                if (child == null) {
+                    continue;
+                }
+
                 WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CA", fromVersion, toVersion);
                 WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CB", fromVersion, toVersion);
                 WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CC", fromVersion, toVersion);

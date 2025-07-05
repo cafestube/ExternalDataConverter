@@ -1,6 +1,7 @@
 package ca.spottedleaf.dataconverter.minecraft;
 
 import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.dataconverter.minecraft.versions.V4290;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
@@ -152,6 +153,7 @@ public final class MCVersionRegistry {
             2531,
             2533,
             2535,
+            2537,
             2538,
             2550,
             2551,
@@ -250,7 +252,36 @@ public final class MCVersionRegistry {
             4067,
             4068,
             4081,
-            // All up to 1.21.3
+            4173,
+            4175,
+            4176,
+            4180,
+            4181,
+            4185,
+            4187,
+            4290,
+            4291,
+            4292,
+            4293,
+            4294,
+            4295,
+            4296,
+            4297,
+            4299,
+            4300,
+            4301,
+            4302,
+            4303,
+            4305,
+            4306,
+            4307,
+            4309,
+            4311,
+            4312,
+            4314,
+            4420,
+            4424,
+            // All up to 1.21.7
         };
         Arrays.sort(converterVersions);
 
@@ -277,6 +308,8 @@ public final class MCVersionRegistry {
         registerSubVersion(MCVersions.V24W07A + 1, 5);
         registerSubVersion(MCVersions.V24W07A + 1, 6);
 
+        registerSubVersion(V4290.VERSION, 1);
+
         // register breakpoints here
         // for all major releases after 1.16, add them. this reduces the work required to determine if a breakpoint
         // is needed for new converters
@@ -300,6 +333,10 @@ public final class MCVersionRegistry {
 
         // final release of major version
         registerBreakpointAfter(MCVersions.V1_20_6, Integer.MAX_VALUE);
+
+        // There is a read of entity sub data in V4299 (salmon) which was written to after V1_20_6
+        // There is also a sub type read in V4290 as it reads and converts all data within a text component
+        registerBreakpointAfter(V4290.VERSION);
     }
 
     static {
@@ -313,7 +350,9 @@ public final class MCVersionRegistry {
                 throw new RuntimeException(ex);
             }
 
-            if (VERSION_NAMES.containsKey(value) && value != MCVersions.V15W33B) { // Mojang registered 15w33a and 15w33b under the same id.
+            // Mojang registered 15w33a and 15w33b under the same id.
+            // Mojang registered 1.21.5-pre2 and 1.21.5-pre3 under the same id.
+            if (VERSION_NAMES.containsKey(value) && value != MCVersions.V15W33B && value != MCVersions.V1_21_5_PRE3) {
                 LOGGER.warn("Error registering version \"" + name + "\", version number '" + value + "' is already associated with \"" + VERSION_NAMES.get(value) + "\"");
             }
 
@@ -384,6 +423,14 @@ public final class MCVersionRegistry {
         SUBVERSIONS.computeIfAbsent(version, (final int keyInMap) -> {
             return new IntArrayList();
         }).add(step);
+    }
+
+    private static void registerBreakpointBefore(final int version) {
+        registerBreakpointBefore(version, 0);
+    }
+
+    private static void registerBreakpointBefore(final int version, final int step) {
+        BREAKPOINTS.add(DataConverter.encodeVersions(version, step) - 1L);
     }
 
     private static void registerBreakpoint(final int version) {
