@@ -22,11 +22,9 @@ import net.kyori.adventure.nbt.LongBinaryTag;
 import net.kyori.adventure.nbt.NumberBinaryTag;
 import net.kyori.adventure.nbt.ShortBinaryTag;
 import net.kyori.adventure.nbt.StringBinaryTag;
-import net.kyori.adventure.nbt.TagStringIOExtension;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class NBTMapType implements MapType, NBTAdapter {
@@ -64,7 +62,7 @@ public final class NBTMapType implements MapType, NBTAdapter {
     }
 
     @Override
-    public TypeUtil<Tag> getTypeUtil() {
+    public TypeUtil<BinaryTag> getTypeUtil() {
         return Types.NBT;
     }
 
@@ -396,7 +394,7 @@ public final class NBTMapType implements MapType, NBTAdapter {
     public byte[] getBytes(final String key, final byte[] dfl) {
         final Object tag = this.map.get(key);
         if (tag instanceof ByteArrayBinaryTag arrayBinaryTag) {
-            return arrayBinaryTag.value().clone();
+            return arrayBinaryTag.value();
         }
         return dfl;
     }
@@ -431,7 +429,7 @@ public final class NBTMapType implements MapType, NBTAdapter {
     public int[] getInts(final String key, final int[] dfl) {
         final Object tag = this.map.get(key);
         if (tag instanceof IntArrayBinaryTag integers) {
-            return integers.value().clone();
+            return integers.value();
         }
         return dfl;
     }
@@ -450,7 +448,7 @@ public final class NBTMapType implements MapType, NBTAdapter {
     public long[] getLongs(final String key, final long[] dfl) {
         final Object tag = this.map.get(key);
         if (tag instanceof LongArrayBinaryTag) {
-            return ((LongArrayBinaryTag)tag).value().clone();
+            return ((LongArrayBinaryTag)tag).value();
         }
         return dfl;
     }
@@ -491,7 +489,7 @@ public final class NBTMapType implements MapType, NBTAdapter {
     }
 
     @Override
-    public MapType<String> getMap(final String key, final MapType dfl) {
+    public MapType getMap(final String key, final MapType dfl) {
         final Object tag = this.map.get(key);
         if (tag instanceof CompoundBinaryTag) {
             return new NBTMapType(((CompoundBinaryTag) tag));
@@ -520,24 +518,6 @@ public final class NBTMapType implements MapType, NBTAdapter {
         final Object tag = this.map.get(key);
         if (tag instanceof StringBinaryTag) {
             return ((StringBinaryTag)tag).value();
-        }
-        return dfl;
-    }
-
-    @Override
-    public String getForcedString(final String key) {
-        return this.getForcedString(key, null);
-    }
-
-    @Override
-    public String getForcedString(final String key, final String dfl) {
-        final Object tag = this.map.get(key);
-        if (tag != null) {
-            if(tag instanceof NBTAdapter) {
-                return TagStringIOExtension.writeTag(((NBTAdapter)tag).getTag());
-            } else if(tag instanceof BinaryTag) {
-                return TagStringIOExtension.writeTag((BinaryTag)tag);
-            }
         }
         return dfl;
     }

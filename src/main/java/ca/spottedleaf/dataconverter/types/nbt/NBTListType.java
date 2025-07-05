@@ -51,7 +51,7 @@ public final class NBTListType implements ListType, NBTAdapter {
     }
 
     @Override
-    public TypeUtil<Tag> getTypeUtil() {
+    public TypeUtil<BinaryTag> getTypeUtil() {
         return Types.NBT;
     }
 
@@ -88,41 +88,55 @@ public final class NBTListType implements ListType, NBTAdapter {
     }
 
     @Override
+    public BinaryTagType<?> getNBTType() {
+        return BinaryTagTypes.COMPOUND;
+    }
+
+    @Override
     public ListType copy() {
         return new NBTListType(this.getTag());
     }
 
     static ObjectType getType(final byte id) {
-        switch (id) {
-            case Tag.TAG_END:
-                return ObjectType.NONE;
-            case Tag.TAG_BYTE:
-                return ObjectType.BYTE;
-            case Tag.TAG_SHORT:
-                return ObjectType.SHORT;
-            case Tag.TAG_INT:
-                return ObjectType.INT;
-            case Tag.TAG_LONG:
-                return ObjectType.LONG;
-            case Tag.TAG_FLOAT:
-                return ObjectType.FLOAT;
-            case Tag.TAG_DOUBLE:
-                return ObjectType.DOUBLE;
-            case Tag.TAG_BYTE_ARRAY:
-                return ObjectType.BYTE_ARRAY;
-            case Tag.TAG_STRING:
-                return ObjectType.STRING;
-            case Tag.TAG_LIST:
-                return ObjectType.LIST;
-            case Tag.TAG_COMPOUND:
-                return ObjectType.MAP;
-            case Tag.TAG_INT_ARRAY:
-                return ObjectType.INT_ARRAY;
-            case Tag.TAG_LONG_ARRAY:
-                return ObjectType.LONG_ARRAY;
-            default:
-                throw new IllegalStateException("Unknown type: " + id);
+
+        if (id == BinaryTagTypes.END.id()) {
+            return ObjectType.NONE;
+        } else if (id == BinaryTagTypes.BYTE.id()) {
+            return ObjectType.BYTE;
+        } else if (id == BinaryTagTypes.SHORT.id()) {
+            return ObjectType.SHORT;
+        } else if (id == BinaryTagTypes.INT.id()) {
+            return ObjectType.INT;
+        } else if (id == BinaryTagTypes.LONG.id()) {
+            return ObjectType.LONG;
+        } else if (id == BinaryTagTypes.FLOAT.id()) {
+            return ObjectType.FLOAT;
+        } else if (id == BinaryTagTypes.DOUBLE.id()) {
+            return ObjectType.DOUBLE;
+        } else if (id == BinaryTagTypes.BYTE_ARRAY.id()) {
+            return ObjectType.BYTE_ARRAY;
+        } else if (id == BinaryTagTypes.STRING.id()) {
+            return ObjectType.STRING;
+        } else if (id == BinaryTagTypes.LIST.id()) {
+            return ObjectType.LIST;
+        } else if (id == BinaryTagTypes.COMPOUND.id()) {
+            return ObjectType.MAP;
+        } else if (id == BinaryTagTypes.INT_ARRAY.id()) {
+            return ObjectType.INT_ARRAY;
+        } else if (id == BinaryTagTypes.LONG_ARRAY.id()) {
+            return ObjectType.LONG_ARRAY;
         }
+        throw new IllegalStateException("Unknown type: " + id);
+    }
+
+    private BinaryTagType<?> getTypeOf(int index) {
+        Object obj = this.list.get(index);
+
+        return switch (obj) {
+            case NBTAdapter adapter -> adapter.getNBTType();
+            case BinaryTag binaryTag -> binaryTag.type();
+            case null, default -> throw new IllegalStateException();
+        };
     }
 
     @Override
@@ -130,8 +144,8 @@ public final class NBTListType implements ListType, NBTAdapter {
         ObjectType curr = null;
 
         for (int i = 0, len = this.list.size(); i < len; ++i) {
-            final Tag tag = this.list.get(i);
-            final ObjectType tagType = getType(tag.getId());
+            final BinaryTagType<?> type = this.getTypeOf(i);
+            final ObjectType tagType = getType(type.id());
             if (curr == null) {
                 curr = tagType;
             } else if (tagType != curr) {
@@ -210,15 +224,16 @@ public final class NBTListType implements ListType, NBTAdapter {
         } else if (this.type == BinaryTagTypes.END) {
             this.type = type;
             return true;
-        } else {
-            return this.type == type;
+        } else if(this.type != type && this.type != BinaryTagTypes.LIST_WILDCARD) {
+            this.type = BinaryTagTypes.LIST_WILDCARD;
+            return true;
         }
-        //TODO: List with multiple types
+        return true;
     }
 
     @Override
     public Object getGeneric(final int index) {
-        return Types.NBT.baseToGeneric(this.list.get(index));
+        return Types.NBT.baseToGeneric(this.getBinaryTag(index));
     }
 
     @Override
@@ -232,11 +247,11 @@ public final class NBTListType implements ListType, NBTAdapter {
 
     @Override
     public Number getNumber(final int index, final Number dfl) {
-        final Tag tag = this.list.get(index); // does bound checking for us
-        if (!(tag instanceof NumericTag)) {
-            retrun dfl;
+        final BinaryTag tag = this.getBinaryTag(index); // does bound checking for us
+        if (!(tag instanceof NumberBinaryTag number)) {
+            return dfl;
         }
-        return ((NumericTag)tag).getAsNumber();
+        return NBTUtil.getNumber(number);
     }
 
     @Override
@@ -384,7 +399,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof ByteArrayBinaryTag bytes)) {
             throw new IllegalStateException();
         }
-        return bytes.value().clone();
+        return bytes.value();
     }
 
     @Override
@@ -393,7 +408,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof ByteArrayBinaryTag bytes)) {
             return dfl;
         }
-        return bytes.value().clone();
+        return bytes.value();
     }
 
     @Override
@@ -424,7 +439,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof IntArrayBinaryTag ints)) {
             throw new IllegalStateException();
         }
-        return ints.value().clone();
+        return ints.value();
     }
 
     @Override
@@ -433,7 +448,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof IntArrayBinaryTag ints)) {
             return dfl;
         }
-        return ints.value().clone();
+        return ints.value();
     }
 
     @Override
@@ -447,7 +462,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof LongArrayBinaryTag longs)) {
             throw new IllegalStateException();
         }
-        return longs.value().clone();
+        return longs.value();
     }
 
     @Override
@@ -456,7 +471,7 @@ public final class NBTListType implements ListType, NBTAdapter {
         if (!(tag instanceof LongArrayBinaryTag longs)) {
             return dfl;
         }
-        return longs.value().clone();
+        return longs.value();
     }
 
     @Override
@@ -503,7 +518,7 @@ public final class NBTListType implements ListType, NBTAdapter {
     }
 
     @Override
-    public MapType<String> getMap(final int index) {
+    public MapType getMap(final int index) {
         final Object tag = this.list.get(index); // does bound checking for us
         switch (tag) {
             case NBTMapType map -> {

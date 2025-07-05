@@ -18,6 +18,7 @@ public final class HelperBlockFlatteningV1450 {
     private static final Logger LOGGER = LoggerFactory.getLogger(HelperBlockFlatteningV1450.class);
     protected static final MapType[] FLATTENED_BY_ID = new MapType[4096];
     protected static final MapType[] BLOCK_DEFAULTS = new MapType[4096];
+    private static final Dynamic<?>[] MAP = new Dynamic[4096];
 
     private static final Object2IntOpenHashMap<MapType> ID_BY_OLD_NBT = new Object2IntOpenHashMap<MapType>(64, 0.7f) {
         @Override

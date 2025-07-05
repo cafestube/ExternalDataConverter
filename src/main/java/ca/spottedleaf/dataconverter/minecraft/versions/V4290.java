@@ -10,18 +10,18 @@ import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.types.Types;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
+import ca.spottedleaf.dataconverter.util.nbt.NBTUtil;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.mojang.logging.LogUtils;
-import net.minecraft.nbt.TagParser;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class V4290 {
 
     public static final int VERSION = MCVersions.V1_21_4 + 101;
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(V4290.class);
 
     private static void convertNestedList(final ListType components) {
         if (components == null) {
@@ -91,7 +91,7 @@ public final class V4290 {
 
                 final MapType legacyItem;
                 try {
-                    legacyItem = new NBTMapType(TagParser.parseCompoundFully(legacyItemStr));
+                    legacyItem = new NBTMapType(NBTUtil.parseCompoundSNBTString(legacyItemStr));
                 } catch (final Exception ex) {
                     LOGGER.error("Failed to parse SNBT for legacy item HoverEvent: " + legacyItemStr, ex);
                     break;
@@ -111,7 +111,7 @@ public final class V4290 {
 
                 final MapType legacyEntity;
                 try {
-                    legacyEntity = new NBTMapType(TagParser.parseCompoundFully(legacyEntityStr));
+                    legacyEntity = new NBTMapType(NBTUtil.parseCompoundSNBTString(legacyEntityStr));
                 } catch (final Exception ex) {
                     LOGGER.error("Failed to parse SNBT for legacy entity HoverEvent: " + legacyEntityStr, ex);
                     break;
