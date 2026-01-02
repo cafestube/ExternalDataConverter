@@ -24,8 +24,8 @@ group = "eu.cafestube.data"
 
 dependencies {
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.11.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.14.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("net.kyori:adventure-nbt:4.17.0")
 
 
