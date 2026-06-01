@@ -31,7 +31,7 @@ public class NBTUtil {
 
     public static CompoundBinaryTag parseCompoundSNBTString(String string) {
         try {
-            return TagStringIO.get().asCompound(string);
+            return TagStringIO.tagStringIO().asCompound(string);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

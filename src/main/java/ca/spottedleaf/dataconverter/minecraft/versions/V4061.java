@@ -68,7 +68,7 @@ public final class V4061 {
 
     private static CompoundBinaryTag parseNBT(final String sNBT) {
         try {
-            return TagStringIO.get().asCompound(sNBT);
+            return TagStringIO.tagStringIO().asCompound(sNBT);
         } catch (final IOException ex) {
             throw new IllegalArgumentException("Failed to parse NBT: " + sNBT, ex);
         }
