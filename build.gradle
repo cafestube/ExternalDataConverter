@@ -75,7 +75,7 @@ publishing {
         maven {
             name = "cafestubeRepository"
             credentials PasswordCredentials.class
-            url = uri("https://repo.cafestube.net/repository/maven-public-snapshots/")
+            url = uri("https://repo.cafestube.net/repository/maven-snapshots/")
         }
     }
 }
