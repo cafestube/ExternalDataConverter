@@ -26,7 +26,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
     testImplementation("org.junit.jupiter:junit-jupiter:5.14.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("net.kyori:adventure-nbt:5.1.0")
+    testImplementation("net.kyori:adventure-nbt:5.2.0")
 
 
     // https://mvnrepository.com/artifact/net.kyori/adventure-api
